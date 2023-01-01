@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"runtime"
 	"sort"
+	"unicode"
 
 	"crypto/md5"
 	"encoding/hex"
@@ -17,10 +18,24 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/text/runes"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
+
 	"xteve/src/internal/imgcache"
 
 	"github.com/samber/lo"
 )
+
+// Remove accents to compare channels names
+func removeAccents(s string) string {
+	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
+	output, _, e := transform.String(t, s)
+	if e != nil {
+		panic(e)
+	}
+	return output
+}
 
 // Check provider XMLTV File
 func checkXMLCompatibility(id string, body []byte) (err error) {
@@ -577,8 +592,8 @@ func mapping() (err error) {
 							xmltvNames := xmltvChannel.(map[string]interface{})["display-names"].([]DisplayName)
 
 							for _, xmltvName := range xmltvNames {
-								xmltvNameSolid := strings.ReplaceAll(xmltvName.Value, " ", "")
-								xepgNameSolid := strings.ReplaceAll(xepgChannel.Name, " ", "")
+								xmltvNameSolid := removeAccents(strings.ReplaceAll(xmltvName.Value, " ", ""))
+								xepgNameSolid := removeAccents(strings.ReplaceAll(xepgChannel.Name, " ", ""))
 
 								if strings.EqualFold(xmltvNameSolid, xepgNameSolid) == false {
 									continue
